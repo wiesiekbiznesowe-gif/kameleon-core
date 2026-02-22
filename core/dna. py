@@ -1,0 +1,65 @@
+import hashlib
+import os
+from pathlib import Path
+
+
+class CoreDNA:
+    """
+    Immutable DNA layer for KAMELEON CORE.
+    Responsible for generating and validating
+    checksum of critical system files.
+    """
+
+    CRITICAL_FILES = [
+        "core/orchestrator.py",
+        "core/guard.py",
+        "core/logger.py",
+        "main.py",
+    ]
+
+    DNA_FILE = "core/.dna"
+
+    @staticmethod
+    def _calculate_hash() -> str:
+        sha = hashlib.sha256()
+
+        for file_path in CoreDNA.CRITICAL_FILES:
+            if not os.path.exists(file_path):
+                continue
+
+            with open(file_path, "rb") as f:
+                sha.update(f.read())
+
+        return sha.hexdigest()
+
+    @staticmethod
+    def generate_dna():
+        """
+        Generates DNA fingerprint and stores it locally.
+        Should be executed intentionally after approved updates.
+        """
+        fingerprint = CoreDNA._calculate_hash()
+
+        with open(CoreDNA.DNA_FILE, "w") as f:
+            f.write(fingerprint)
+
+        return fingerprint
+
+    @staticmethod
+    def validate():
+        """
+        Validates current CORE integrity.
+        Raises RuntimeError if DNA mismatch detected.
+        """
+        if not os.path.exists(CoreDNA.DNA_FILE):
+            raise RuntimeError("DNA file missing. System integrity unknown.")
+
+        current_hash = CoreDNA._calculate_hash()
+
+        with open(CoreDNA.DNA_FILE, "r") as f:
+            stored_hash = f.read().strip()
+
+        if current_hash != stored_hash:
+            raise RuntimeError("CORE DNA mismatch detected. System integrity compromised.")
+
+        return True
