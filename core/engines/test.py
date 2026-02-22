@@ -1,10 +1,9 @@
 from core.base_engine import BaseEngine
 
-
 class Engine(BaseEngine):
 
-    def run(self, payload: dict) -> dict:
+    def _execute(self, payload: dict):
+        text = payload.get("message", "")
         return {
-            "status": "success",
-            "received": payload
+            "test_echo": f"Test engine received: {text}"
         }
