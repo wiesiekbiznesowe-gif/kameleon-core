@@ -1,9 +1,7 @@
-from typing import Dict
+from core.guard import Guard
 
 
 class Orchestrator:
-
-    CORE_VERSION = "1.0.1"
 
     def __init__(self):
         self.modules = {}
@@ -14,12 +12,7 @@ class Orchestrator:
             raise ValueError(f"Module '{name}' already registered.")
         self.modules[name] = module
 
-    def _validate_payload(self, payload):
-        if not isinstance(payload, dict):
-            raise TypeError("Payload must be a dictionary.")
-        return True
-
-    def execute(self, name: str, payload: Dict) -> Dict:
+    def execute(self, name: str, payload: dict) -> dict:
 
         if not self.safe_mode:
             raise RuntimeError("System is not in SAFE MODE.")
@@ -32,21 +25,19 @@ class Orchestrator:
                 "error": f"Module '{name}' not found."
             }
 
-        try:
-            self._validate_payload(payload)
+        # 🔒 GLOBAL INPUT GUARD
+        validation = Guard.validate(name, payload)
 
-            module = self.modules[name]
-            result = module.run(payload)
-
-            return result
-
-        except Exception as e:
+        if not validation.get("allowed"):
             return {
                 "status": "error",
                 "engine": name,
                 "data": None,
-                "error": str(e)
+                "error": validation.get("error")
             }
+
+        module = self.modules[name]
+        return module.run(payload)
 
     def enable_safe_mode(self):
         self.safe_mode = True
