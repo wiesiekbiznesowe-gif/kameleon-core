@@ -1,34 +1,34 @@
-"""
-Kameleon Core Orchestrator
-Bezpieczny, lokalny koordynator modułów.
-Zero połączeń zewnętrznych.
-"""
+def execute(self, name: str, payload: Dict) -> Dict:
+    if not self.safe_mode:
+        raise RuntimeError("System is not in SAFE MODE.")
 
-from typing import Dict, Any
+    if name not in self.modules:
+        return {
+            "status": "error",
+            "engine": name,
+            "data": None,
+            "error": f"Module '{name}' not found."
+        }
 
+    module = self.modules[name]
 
-class Orchestrator:
-    def __init__(self):
-        self.modules = {}
-        self.safe_mode = True
+    try:
+        result = module.run(payload)
 
-    def register_module(self, name: str, module: Any) -> None:
-        if name in self.modules:
-            raise ValueError(f"Module '{name}' already registered.")
-        self.modules[name] = module
+        # Walidacja formatu odpowiedzi
+        if not isinstance(result, dict):
+            raise ValueError("Invalid engine response format.")
 
-    def execute(self, name: str, payload: Dict) -> Dict:
-        if self.safe_mode is False:
-            raise RuntimeError("System is not in SAFE MODE.")
+        required_keys = {"status", "engine", "data", "error"}
+        if not required_keys.issubset(result.keys()):
+            raise ValueError("Engine response missing required keys.")
 
-        if name not in self.modules:
-            raise ValueError(f"Module '{name}' not found.")
+        return result
 
-        module = self.modules[name]
-        return module.run(payload)
-
-    def enable_safe_mode(self):
-        self.safe_mode = True
-
-    def disable_safe_mode(self):
-        raise PermissionError("Safe mode cannot be disabled in CORE.")
+    except Exception as e:
+        return {
+            "status": "error",
+            "engine": name,
+            "data": None,
+            "error": str(e)
+        }
