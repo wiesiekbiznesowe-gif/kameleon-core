@@ -1,34 +1,32 @@
-def execute(self, name: str, payload: Dict) -> Dict:
-    if not self.safe_mode:
-        raise RuntimeError("System is not in SAFE MODE.")
+class Orchestrator:
 
-    if name not in self.modules:
-        return {
-            "status": "error",
-            "engine": name,
-            "data": None,
-            "error": f"Module '{name}' not found."
-        }
+    def __init__(self):
+        self.modules = {}
+        self.safe_mode = True
 
-    module = self.modules[name]
+    def register_module(self, name: str, module):
+        if name in self.modules:
+            raise ValueError(f"Module '{name}' already registered.")
+        self.modules[name] = module
 
-    try:
-        result = module.run(payload)
+    def execute(self, name: str, payload: dict) -> dict:
 
-        # Walidacja formatu odpowiedzi
-        if not isinstance(result, dict):
-            raise ValueError("Invalid engine response format.")
+        if not self.safe_mode:
+            raise RuntimeError("System is not in SAFE MODE.")
 
-        required_keys = {"status", "engine", "data", "error"}
-        if not required_keys.issubset(result.keys()):
-            raise ValueError("Engine response missing required keys.")
+        if name not in self.modules:
+            return {
+                "status": "error",
+                "engine": name,
+                "data": None,
+                "error": f"Module '{name}' not found."
+            }
 
-        return result
+        module = self.modules[name]
+        return module.run(payload)
 
-    except Exception as e:
-        return {
-            "status": "error",
-            "engine": name,
-            "data": None,
-            "error": str(e)
-        }
+    def enable_safe_mode(self):
+        self.safe_mode = True
+
+    def disable_safe_mode(self):
+        raise PermissionError("Safe mode cannot be disabled in CORE.")
