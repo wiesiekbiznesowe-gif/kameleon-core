@@ -34,7 +34,6 @@ class Orchestrator:
             }
 
         try:
-            # GLOBAL GUARD VALIDATION
             guard_result = Guard.validate(name, payload)
 
             if not guard_result.get("allowed"):
@@ -47,7 +46,6 @@ class Orchestrator:
                     "error": guard_result.get("error")
                 }
 
-            # ENGINE EXECUTION
             module = self.modules[name]
             result = module.run(payload)
 
