@@ -1,65 +1,41 @@
-import hashlib
-import os
-from pathlib import Path
-
-
-class CoreDNA:
+class SystemDNA:
     """
-    Immutable DNA layer for KAMELEON CORE.
-    Responsible for generating and validating
-    checksum of critical system files.
+    Immutable system rules layer.
+    Acts as a constitutional validator before execution.
     """
 
-    CRITICAL_FILES = [
-        "core/orchestrator.py",
-        "core/guard.py",
-        "core/logger.py",
-        "main.py",
-    ]
+    def __init__(self):
+        self.mode = "LOCAL_ONLY"  # LOCAL_ONLY | HYBRID | EXTERNAL_ALLOWED
+        self.max_payload_size = 5000
+        self.system_locked = False
 
-    DNA_FILE = "core/.dna"
+    def validate(self, module_name: str, payload: dict) -> dict:
+        if self.system_locked:
+            return {
+                "allowed": False,
+                "reason": "System is locked by DNA"
+            }
 
-    @staticmethod
-    def _calculate_hash() -> str:
-        sha = hashlib.sha256()
+        # Payload size validation
+        payload_str = str(payload)
+        if len(payload_str) > self.max_payload_size:
+            return {
+                "allowed": False,
+                "reason": "Payload too large (DNA rule)"
+            }
 
-        for file_path in CoreDNA.CRITICAL_FILES:
-            if not os.path.exists(file_path):
-                continue
+        # Mode enforcement
+        if self.mode == "LOCAL_ONLY":
+            # In future we mark engines as external/local
+            # For now assume all engines are LOCAL
+            pass
 
-            with open(file_path, "rb") as f:
-                sha.update(f.read())
+        return {
+            "allowed": True
+        }
 
-        return sha.hexdigest()
+    def lock_system(self):
+        self.system_locked = True
 
-    @staticmethod
-    def generate_dna():
-        """
-        Generates DNA fingerprint and stores it locally.
-        Should be executed intentionally after approved updates.
-        """
-        fingerprint = CoreDNA._calculate_hash()
-
-        with open(CoreDNA.DNA_FILE, "w") as f:
-            f.write(fingerprint)
-
-        return fingerprint
-
-    @staticmethod
-    def validate():
-        """
-        Validates current CORE integrity.
-        Raises RuntimeError if DNA mismatch detected.
-        """
-        if not os.path.exists(CoreDNA.DNA_FILE):
-            raise RuntimeError("DNA file missing. System integrity unknown.")
-
-        current_hash = CoreDNA._calculate_hash()
-
-        with open(CoreDNA.DNA_FILE, "r") as f:
-            stored_hash = f.read().strip()
-
-        if current_hash != stored_hash:
-            raise RuntimeError("CORE DNA mismatch detected. System integrity compromised.")
-
-        return True
+    def unlock_system(self):
+        self.system_locked = False
