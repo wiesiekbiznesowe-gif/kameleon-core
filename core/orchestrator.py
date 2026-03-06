@@ -1,60 +1,39 @@
-from core.usage_tracker import UsageTracker
 from core.dna import SystemDNA
+from core.logger import Logger
+from core.usage_tracker import UsageTracker
+
+from core.engines.image_engine import ImageEngine
 
 
 class Orchestrator:
-    """
-    Central execution router for Kameleon Core.
-    Execution order:
-    1. DNA validation
-    2. Usage control
-    3. Engine execution
-    """
 
     def __init__(self):
-        self.modules = {}
-        self.usage_tracker = UsageTracker()
         self.dna = SystemDNA()
+        self.logger = Logger()
+        self.usage = UsageTracker()
 
-    def register_module(self, name: str, module):
-        self.modules[name] = module
+        self.engines = {
+            "image": ImageEngine()
+        }
 
-    def execute(self, module_name: str, payload: dict) -> dict:
+    def run(self, engine_name, payload):
 
-        # Module existence check
-        if module_name not in self.modules:
+        auth = self.dna.authorize(engine_name, payload)
+
+        if not auth["allowed"]:
+            return auth
+
+        engine = self.engines.get(engine_name)
+
+        if not engine:
             return {
                 "status": "error",
-                "message": f"Module '{module_name}' not found"
+                "message": "Engine not found"
             }
 
-        # 🔐 DNA LAYER (FIRST)
-        dna_check = self.dna.validate(module_name, payload)
+        result = engine.execute(payload)
 
-        if not dna_check["allowed"]:
-            return {
-                "status": "blocked_by_dna",
-                "reason": dna_check["reason"]
-            }
+        self.usage.track(engine_name)
+        self.logger.log(engine_name, payload)
 
-        # 📊 Usage Control (SECOND)
-        usage_check = self.usage_tracker.check_and_track(module_name)
-
-        if not usage_check["allowed"]:
-            return {
-                "status": "blocked_by_usage",
-                "reason": usage_check["reason"]
-            }
-
-        # 🚀 Engine Execution (THIRD)
-        module = self.modules[module_name]
-
-        try:
-            result = module.execute(payload)
-            return result
-
-        except Exception as e:
-            return {
-                "status": "error",
-                "message": str(e)
-            }
+        return result
