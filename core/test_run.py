@@ -1,13 +1,19 @@
 from core.orchestrator import Orchestrator
-from core.engines.test_engine import TestEngine
 
-# Tworzymy orchestrator
-orch = Orchestrator()
 
-# Rejestrujemy moduł
-orch.register_module("test", TestEngine())
+def main():
 
-# Wykonujemy test
-result = orch.execute("test", {"message": "Kameleon działa"})
+    system = Orchestrator()
 
-print(result)
+    result = system.run(
+        "image",
+        {
+            "prompt": "first kameleon test"
+        }
+    )
+
+    print(result)
+
+
+if __name__ == "__main__":
+    main()
