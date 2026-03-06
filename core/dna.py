@@ -1,34 +1,28 @@
 class SystemDNA:
     """
-    Immutable system rules layer.
-    Acts as a constitutional validator before execution.
+    Niezmienna warstwa zasad systemu Kameleon.
     """
 
     def __init__(self):
-        self.mode = "LOCAL_ONLY"  # LOCAL_ONLY | HYBRID | EXTERNAL_ALLOWED
-        self.max_payload_size = 5000
+        self.mode = "LOCAL_ONLY"
+        self.max_payload = 5000
         self.system_locked = False
 
-    def validate(self, module_name: str, payload: dict) -> dict:
+    def authorize(self, module, payload):
+
         if self.system_locked:
             return {
                 "allowed": False,
-                "reason": "System is locked by DNA"
+                "reason": "System locked by DNA"
             }
 
-        # Payload size validation
         payload_str = str(payload)
-        if len(payload_str) > self.max_payload_size:
+
+        if len(payload_str) > self.max_payload:
             return {
                 "allowed": False,
-                "reason": "Payload too large (DNA rule)"
+                "reason": "Payload too large"
             }
-
-        # Mode enforcement
-        if self.mode == "LOCAL_ONLY":
-            # In future we mark engines as external/local
-            # For now assume all engines are LOCAL
-            pass
 
         return {
             "allowed": True
